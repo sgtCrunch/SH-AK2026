@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pixel Letter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; image-rendering: pixelated; image-rendering: crisp-edges; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+
+    :root {
+      --env-w: 560px; --env-h: 350px; --page-w: 420px; --page-h: 80vh; --env-peek: 196px;
+      --p0: #e8ddb0; --p1: #d9ca8c; --p2: #c4b064; --p3: #a08832; --p4: #7a6418;
+      --ink: #160e00;
+      /* Solid blue envelope */
+      --eb: #1a3dab;   /* main body  */
+      --eh: #3060e0;   /* highlights */
+      --es: #0e2070;   /* shadow     */
+    }
+
+    html, body { width:100%; height:100%; background:#030510; overflow:hidden; font-family:'Press Start 2P',monospace; cursor:crosshair; }
+
+    /* ── Stars ─────────────────────────────────────────────── */
+    #stars { position:fixed; inset:0; pointer-events:none; z-index:1; }
+    .star  { position:absolute; background:#c8deff; animation:blink var(--dur) steps(1) infinite var(--del); }
+    .star.lg::before,.star.lg::after { content:''; position:absolute; background:inherit; }
+    .star.lg::before { width:100%; height:300%; top:-100%; left:0; }
+    .star.lg::after  { width:300%; height:100%; left:-100%; top:0; }
+    @keyframes blink { 0%,49%,100%{opacity:0} 50%,99%{opacity:var(--op)} }
+
+    /* ── Scene ─────────────────────────────────────────────── */
+    #scene { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; }
+
+    /* ── Float ─────────────────────────────────────────────── */
+    #env-wrap { position:relative; width:var(--env-w); height:var(--env-h); cursor:pointer; flex-shrink:0; animation:floatUD 4s ease-in-out infinite; }
+    #env-wrap.opening,#env-wrap.opened { animation:none; }
+    @keyframes floatUD { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-28px)} }
+
+    #envelope-svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; shape-rendering:crispEdges; }
+
+    /* ── Flap pivot at y=24 (its own top edge in 320×200 viewBox) ── */
+    #flap { transform-origin:160px 24px; transition:transform 1.1s cubic-bezier(.4,0,.2,1); }
+    .opening #flap, .opened #flap { transform:rotateX(-174deg); }
+
+    /* ── Sparkles ─────────────────────────────────────────── */
+    #sparkle-host { position:absolute; top:50%; left:50%; width:0; height:0; pointer-events:none; z-index:5; transition:opacity 1.6s ease-out; }
+    #sparkle-host.fading { opacity:0; }
+    .sp-canvas { position:absolute; animation:pixOrbit var(--spd) linear infinite var(--del); }
+    @keyframes pixOrbit { from{transform:rotate(0deg) translateX(var(--r)) rotate(0deg)} to{transform:rotate(360deg) translateX(var(--r)) rotate(-360deg)} }
+
+    /* ══ SOFT FULL-SCREEN LIGHT ════════════════════════════════
+       A single fixed div expands from the envelope and fills
+       the entire screen with a smooth, even, soft white light
+       then fades. No hard edges — pure opacity transition.
+    ═══════════════════════════════════════════════════════════ */
+    #light-bloom {
+      position:fixed; inset:0; pointer-events:none; z-index:45;
+      opacity:0;
+      background:rgba(220,238,255,1);
+    }
+    #light-bloom.fire { animation:fullBloom 3.8s ease-in-out forwards; }
+    @keyframes fullBloom {
+      0%   { opacity:0; }
+      25%  { opacity:.88; }
+      50%  { opacity:.95; }
+      70%  { opacity:.88; }
+      100% { opacity:0; }
+    }
+
+    /* Explosion bloom (after spin) — brighter, faster */
+    #light-bloom.explode { animation:explodeBloom 2.5s ease-out forwards; }
+    @keyframes explodeBloom {
+      0%   { opacity:0; }
+      15%  { opacity:1; }
+      45%  { opacity:.9; }
+      100% { opacity:0; }
+    }
+
+    /* ── Opened layout ──────────────────────────────────────── */
+    #opened-layout { display:none; position:fixed; inset:0; z-index:20; align-items:center; justify-content:center; }
+    #opened-layout.active { display:flex; }
+    #env-static  { position:relative; flex-shrink:0; }
+    #pages-stack { position:relative; flex-shrink:0; }
+
+    /* ── Page card ──────────────────────────────────────────── */
+    .page-card {
+      position:absolute; top:0; left:0;
+      /* min 60vw wide, min 80vh tall — responsive via JS */
+      width:var(--page-w); height:var(--page-h);
+      overflow:hidden;
+      background:var(--p0);
+      /* Clean straight border — no tattered edges */
+      outline:2px solid var(--p4);
+      box-shadow:
+        2px 0 0 0 var(--p4), -2px 0 0 0 var(--p4),
+        0 2px 0 0 var(--p4), 0 -2px 0 0 var(--p4),
+        6px 6px 0 2px rgba(0,0,0,.45),
+        inset 2px 2px 0 0 rgba(255,255,220,.45),
+        inset -2px -2px 0 0 rgba(0,0,0,.08);
+      padding:22px 20px 52px 20px;
+      opacity:0; pointer-events:none; transform:translateX(-60px);
+      background-color: var(--p0);
+      background-image:
+        /* Horizontal crease line — roughly at 1/3 from top */
+        linear-gradient(transparent calc(33% - 1px), rgba(90,70,10,.18) calc(33%), rgba(200,180,80,.12) calc(33% + 1px), rgba(255,245,190,.22) calc(33% + 2px), transparent calc(33% + 3px)),
+        /* Second horizontal crease — at 2/3 */
+        linear-gradient(transparent calc(66% - 1px), rgba(90,70,10,.12) calc(66%), rgba(200,180,80,.08) calc(66% + 1px), rgba(255,245,190,.16) calc(66% + 2px), transparent calc(66% + 3px)),
+        /* Fine crosshatch grain */
+        repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(120,100,30,.03) 3px, rgba(120,100,30,.03) 4px),
+        repeating-linear-gradient(0deg,  transparent 0, transparent 3px, rgba(120,100,30,.03) 3px, rgba(120,100,30,.03) 4px),
+        /* Aged stain blotches */
+        radial-gradient(ellipse 28% 18% at 22% 78%, rgba(160,130,50,.06) 0%, transparent 100%),
+        radial-gradient(ellipse 18% 28% at 72% 24%, rgba(160,130,50,.04) 0%, transparent 100%);
+    }
+
+    /* Crease shadow lines — horizontal folds only */
+    .page-card::before {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:
+        linear-gradient(transparent calc(33% - 2px), rgba(60,45,5,.10) calc(33% - 2px), rgba(60,45,5,.10) calc(33%), transparent calc(33%)),
+        linear-gradient(transparent calc(66% - 2px), rgba(60,45,5,.08) calc(66% - 2px), rgba(60,45,5,.08) calc(66%), transparent calc(66%));
+      z-index:0;
+    }
+
+    /* Crease highlight — horizontal folds only */
+    .page-card::after {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:
+        linear-gradient(transparent calc(33% + 2px), rgba(255,250,200,.30) calc(33% + 2px), rgba(255,250,200,.30) calc(33% + 5px), transparent calc(33% + 5px)),
+        linear-gradient(transparent calc(66% + 2px), rgba(255,250,200,.22) calc(66% + 2px), rgba(255,250,200,.22) calc(66% + 5px), transparent calc(66% + 5px));
+      z-index:0;
+    }
+
+    /* ── Page animations ────────────────────────────────────── */
+    .page-card.rise   { animation:pageRise .65s ease-out forwards; }
+    @keyframes pageRise {
+      0%  {transform:translateX(-80px) translateY(20px);opacity:0}
+      15% {opacity:1}
+      75% {transform:translateX(4px) translateY(-4px);opacity:1}
+      100%{transform:translateX(0) translateY(0);opacity:1}
+    }
+    .page-card.active { pointer-events:auto; }
+    .page-card.exit   { animation:pageExit .35s ease-in forwards; }
+    @keyframes pageExit {
+      0%  {transform:translateX(0) translateY(0);opacity:1}
+      100%{transform:translateX(-50px) translateY(10px);opacity:0}
+    }
+    /* Return into envelope */
+    .page-card.suck   { animation:pageSuck .5s ease-in forwards; }
+    @keyframes pageSuck {
+      0%  {transform:translateX(0) translateY(0) scale(1);opacity:1}
+      100%{transform:translateX(-80px) translateY(30px) scale(.5);opacity:0}
+    }
+
+    /* ── Envelope spin animation ────────────────────────────── */
+    .env-spinning {
+      animation:envSpin 0.5s linear infinite !important;
+    }
+    @keyframes envSpin {
+      from{transform:rotate(0deg)}
+      to  {transform:rotate(360deg)}
+    }
+
+    /* ── Page content ────────────────────────────────────────── */
+    .page-content { height:100%; overflow-y:auto; position:relative; z-index:1; }
+
+    .page-items { list-style:none; }
+    .page-items li {
+      font-family:'VT323',monospace; font-size:22px; color:var(--ink);
+      line-height:1.6; padding:3px 0 3px 18px; position:relative;
+      visibility:hidden;
+    }
+    .page-items li.visible { visibility:visible; }
+    .page-items li.visible::before {
+      content:''; position:absolute; left:4px; top:13px;
+      width:4px; height:4px; background:var(--p3);
+      box-shadow:2px 0 0 0 var(--p4),0 2px 0 0 var(--p4);
+    }
+    .page-items li+li {
+      background-image:repeating-linear-gradient(90deg,var(--p2) 0,var(--p2) 3px,transparent 3px,transparent 6px);
+      background-size:100% 1px; background-position:0 0; background-repeat:no-repeat;
+    }
+    .cursor { display:inline-block; width:8px; height:18px; background:var(--ink); margin-left:2px; vertical-align:middle; animation:cursorBlink .6s steps(1) infinite; }
+    @keyframes cursorBlink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+
+    /* ── Nav bar ─────────────────────────────────────────────── */
+    .page-nav { position:absolute; bottom:10px; left:0; right:0; padding:0 14px; display:flex; align-items:center; justify-content:space-between; pointer-events:none; z-index:2; }
+
+    /* Back arrow — proper left-pointing arrow */
+    .nav-back {
+      pointer-events:auto; cursor:pointer;
+      width:32px; height:24px; position:relative; opacity:.6; transition:opacity .15s; display:none;
+    }
+    .nav-back:hover { opacity:1; }
+    /* Arrow head (left-pointing) */
+    .nav-back::before {
+      content:''; position:absolute; left:0; top:50%; transform:translateY(-50%);
+      width:0; height:0;
+      border-top:8px solid transparent;
+      border-bottom:8px solid transparent;
+      border-right:10px solid var(--p4);
+      image-rendering:auto;
+    }
+    /* Shaft */
+    .nav-back::after {
+      content:''; position:absolute; left:8px; top:50%; transform:translateY(-50%);
+      width:18px; height:4px; background:var(--p4);
+    }
+
+    .nav-pagenum {
+      position:absolute; bottom:12px; right:14px;
+      font-family:'Press Start 2P',monospace; font-size:6px; color:var(--p3); opacity:.55; letter-spacing:.05em;
+      pointer-events:none; z-index:2;
+    }
+
+    /* ── Photo page ──────────────────────────────────────────── */
+    .photo-placeholder {
+      width:100%; aspect-ratio:4/3; max-height:55vh;
+      background:repeating-linear-gradient(45deg,rgba(160,136,50,.07) 0,rgba(160,136,50,.07) 3px,transparent 3px,transparent 9px),var(--p1);
+      outline:2px dashed var(--p3); cursor:pointer;
+    }
+    .photo-placeholder:hover { background:repeating-linear-gradient(45deg,rgba(160,136,50,.13) 0,rgba(160,136,50,.13) 3px,transparent 3px,transparent 9px),#d4c47e; }
+
+    .photo-result { display:none; width:100%; }
+    .photo-result img { width:100%; max-height:55vh; object-fit:contain; object-position:center; display:block; outline:2px solid var(--p3); box-shadow:4px 4px 0 2px rgba(0,0,0,.4); }
+
+    /* Complete button */
+    .complete-btn {
+      display:block; margin:10px auto 0;
+      font-family:'Press Start 2P',monospace; font-size:7px;
+      color:#fff; background:#1a3dab;
+      border:2px solid #3060e0; padding:8px 14px;
+      cursor:pointer; letter-spacing:.08em;
+    }
+    .complete-btn:hover { background:#2050cc; }
+
+    .replace-btn {
+      display:block; margin:4px auto 0;
+      font-family:'Press Start 2P',monospace; font-size:5px; color:var(--p4);
+      background:var(--p1); border:2px solid var(--p3); padding:4px 8px; cursor:pointer;
+    }
+    .replace-btn:hover { background:var(--p2); }
+
+    .upload-status { font-family:'Press Start 2P',monospace; font-size:5px; color:var(--p4); text-align:center; margin-top:5px; min-height:12px; }
+    #photo-input { display:none; }
+
+    /* ── Final reveal ────────────────────────────────────────── */
+    #final-reveal {
+      display:none; position:fixed; inset:0; z-index:60;
+      align-items:center; justify-content:center;
+      background:#030510;
+    }
+    #final-reveal.active { display:flex; }
+
+    #framed-image-wrap {
+      position:relative;
+      /* sized by JS to preserve aspect ratio */
+    }
+    #framed-image-wrap img {
+      display:block; width:100%; height:100%;
+      object-fit:contain;
+    }
+    /* The pixel border frame canvas sits on top */
+    #frame-canvas {
+      position:absolute; inset:0;
+      pointer-events:none;
+    }
+
+    /* Reveal entrance animation */
+    #framed-image-wrap {
+      opacity:0;
+      animation:none;
+    }
+    #framed-image-wrap.reveal { animation:imgReveal 1.2s ease-out forwards; }
+    @keyframes imgReveal {
+      0%  {opacity:0; transform:scale(.8)}
+      60% {opacity:1; transform:scale(1.03)}
+      100%{opacity:1; transform:scale(1)}
+    }
+  </style>
+</head>
+<body>
+
+<div id="stars"></div>
+<div id="light-bloom"></div>
+
+<!-- Idle: floating envelope -->
+<div id="scene">
+  <div id="env-wrap" onclick="handleClick()">
+    <div id="sparkle-host"></div>
+
+    <!--
+      Pixel envelope — 320×200 viewBox.
+      SOLID blue body — minimal shading, no gradients.
+      Folds are crisp 2px staircases.
+      Flap pivots around y=24 (its own top edge).
+    -->
+    <svg id="envelope-svg" viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+
+      <!-- ═══ SOLID BODY ════════════════════════════════════ -->
+      <rect x="0"   y="24"  width="320" height="176" fill="#1a3dab"/>
+      <!-- Single 2px top highlight row -->
+      <rect x="0"   y="24"  width="320" height="2"   fill="#3060e0"/>
+      <!-- Single 2px left highlight -->
+      <rect x="0"   y="24"  width="2"   height="176" fill="#3060e0"/>
+      <!-- Single 2px right shadow -->
+      <rect x="318" y="24"  width="2"   height="176" fill="#0e2070"/>
+      <!-- Single 2px bottom shadow -->
+      <rect x="0"   y="198" width="320" height="2"   fill="#0e2070"/>
+
+      <!-- ═══ LEFT FOLD — 2px staircase ════════════════════ -->
+      <rect x="0" y="30"  width="2"  height="8" fill="#0e2070"/>
+      <rect x="0" y="38"  width="4"  height="8" fill="#0e2070"/>
+      <rect x="0" y="46"  width="6"  height="8" fill="#0e2070"/>
+      <rect x="0" y="54"  width="8"  height="8" fill="#0e2070"/>
+      <rect x="0" y="62"  width="10" height="8" fill="#0e2070"/>
+      <rect x="0" y="70"  width="12" height="8" fill="#0e2070"/>
+      <rect x="0" y="78"  width="14" height="8" fill="#0e2070"/>
+      <rect x="0" y="86"  width="16" height="8" fill="#0e2070"/>
+      <rect x="0" y="94"  width="18" height="8" fill="#0e2070"/>
+      <rect x="0" y="102" width="20" height="8" fill="#0e2070"/>
+      <rect x="0" y="110" width="22" height="8" fill="#0e2070"/>
+      <rect x="0" y="118" width="24" height="8" fill="#0e2070"/>
+      <rect x="0" y="126" width="26" height="8" fill="#0e2070"/>
+      <rect x="0" y="134" width="28" height="8" fill="#0e2070"/>
+      <rect x="0" y="142" width="30" height="8" fill="#0e2070"/>
+      <rect x="0" y="150" width="32" height="8" fill="#0e2070"/>
+      <rect x="0" y="158" width="34" height="8" fill="#0e2070"/>
+      <rect x="0" y="166" width="36" height="8" fill="#0e2070"/>
+      <rect x="0" y="174" width="38" height="8" fill="#0e2070"/>
+      <rect x="0" y="182" width="40" height="8" fill="#0e2070"/>
+      <rect x="0" y="190" width="42" height="8" fill="#0e2070"/>
+      <!-- lit stair edge -->
+      <rect x="2"  y="30"  width="1" height="8" fill="#3a6cec" opacity=".5"/>
+      <rect x="4"  y="38"  width="1" height="8" fill="#3a6cec" opacity=".42"/>
+      <rect x="6"  y="46"  width="1" height="8" fill="#3a6cec" opacity=".35"/>
+      <rect x="8"  y="54"  width="1" height="8" fill="#3a6cec" opacity=".28"/>
+      <rect x="10" y="62"  width="1" height="8" fill="#3a6cec" opacity=".22"/>
+      <rect x="12" y="70"  width="1" height="8" fill="#3a6cec" opacity=".16"/>
+
+      <!-- ═══ RIGHT FOLD — mirror ════════════════════════════ -->
+      <rect x="318" y="30"  width="2"  height="8" fill="#0e2070"/>
+      <rect x="316" y="38"  width="4"  height="8" fill="#0e2070"/>
+      <rect x="314" y="46"  width="6"  height="8" fill="#0e2070"/>
+      <rect x="312" y="54"  width="8"  height="8" fill="#0e2070"/>
+      <rect x="310" y="62"  width="10" height="8" fill="#0e2070"/>
+      <rect x="308" y="70"  width="12" height="8" fill="#0e2070"/>
+      <rect x="306" y="78"  width="14" height="8" fill="#0e2070"/>
+      <rect x="304" y="86"  width="16" height="8" fill="#0e2070"/>
+      <rect x="302" y="94"  width="18" height="8" fill="#0e2070"/>
+      <rect x="300" y="102" width="20" height="8" fill="#0e2070"/>
+      <rect x="298" y="110" width="22" height="8" fill="#0e2070"/>
+      <rect x="296" y="118" width="24" height="8" fill="#0e2070"/>
+      <rect x="294" y="126" width="26" height="8" fill="#0e2070"/>
+      <rect x="292" y="134" width="28" height="8" fill="#0e2070"/>
+      <rect x="290" y="142" width="30" height="8" fill="#0e2070"/>
+      <rect x="288" y="150" width="32" height="8" fill="#0e2070"/>
+      <rect x="286" y="158" width="34" height="8" fill="#0e2070"/>
+      <rect x="284" y="166" width="36" height="8" fill="#0e2070"/>
+      <rect x="282" y="174" width="38" height="8" fill="#0e2070"/>
+      <rect x="280" y="182" width="40" height="8" fill="#0e2070"/>
+      <rect x="278" y="190" width="42" height="8" fill="#0e2070"/>
+      <!-- shadow edge -->
+      <rect x="317" y="30"  width="1" height="8" fill="#0c1e78" opacity=".5"/>
+      <rect x="315" y="38"  width="1" height="8" fill="#0c1e78" opacity=".42"/>
+      <rect x="313" y="46"  width="1" height="8" fill="#0c1e78" opacity=".35"/>
+
+      <!-- ═══ BOTTOM CENTRE FOLD ════════════════════════════ -->
+      <rect x="156" y="190" width="8"  height="4" fill="#2a50d0" opacity=".7"/>
+      <rect x="152" y="186" width="16" height="4" fill="#2248c8" opacity=".55"/>
+
+      <!-- ═══ OUTLINE ════════════════════════════════════════ -->
+      <rect x="0"   y="24"  width="320" height="2"   fill="#4070f0"/>
+      <rect x="0"   y="24"  width="2"   height="176" fill="#4070f0"/>
+      <rect x="318" y="24"  width="2"   height="176" fill="#0c1e78"/>
+      <rect x="0"   y="198" width="320" height="2"   fill="#0c1e78"/>
+
+      <!-- ═══ FLAP — pixel staircase triangle, darker blue ══
+           Pivots around y=24 (its own top edge, x=0..320).
+           Each 2px row narrows by 2px each side → meets at centre x=160.
+           Colour: #122e88 (darker than body #1a3dab).
+      ══════════════════════════════════════════════════════ -->
+      <g id="flap">
+        <!-- Full-width rows at the top -->
+        <rect x="0"   y="24" width="320" height="2"  fill="#122e88"/>
+        <rect x="2"   y="26" width="316" height="2"  fill="#122e88"/>
+        <rect x="4"   y="28" width="312" height="2"  fill="#122e88"/>
+        <rect x="6"   y="30" width="308" height="2"  fill="#122e88"/>
+        <rect x="8"   y="32" width="304" height="2"  fill="#122e88"/>
+        <rect x="10"  y="34" width="300" height="2"  fill="#122e88"/>
+        <rect x="12"  y="36" width="296" height="2"  fill="#122e88"/>
+        <rect x="14"  y="38" width="292" height="2"  fill="#122e88"/>
+        <rect x="16"  y="40" width="288" height="2"  fill="#122e88"/>
+        <rect x="18"  y="42" width="284" height="2"  fill="#122e88"/>
+        <rect x="20"  y="44" width="280" height="2"  fill="#122e88"/>
+        <rect x="22"  y="46" width="276" height="2"  fill="#122e88"/>
+        <rect x="24"  y="48" width="272" height="2"  fill="#122e88"/>
+        <rect x="26"  y="50" width="268" height="2"  fill="#122e88"/>
+        <rect x="28"  y="52" width="264" height="2"  fill="#122e88"/>
+        <rect x="30"  y="54" width="260" height="2"  fill="#122e88"/>
+        <rect x="32"  y="56" width="256" height="2"  fill="#122e88"/>
+        <rect x="34"  y="58" width="252" height="2"  fill="#122e88"/>
+        <rect x="36"  y="60" width="248" height="2"  fill="#122e88"/>
+        <rect x="38"  y="62" width="244" height="2"  fill="#122e88"/>
+        <rect x="40"  y="64" width="240" height="2"  fill="#122e88"/>
+        <rect x="42"  y="66" width="236" height="2"  fill="#122e88"/>
+        <rect x="44"  y="68" width="232" height="2"  fill="#122e88"/>
+        <rect x="46"  y="70" width="228" height="2"  fill="#122e88"/>
+        <rect x="48"  y="72" width="224" height="2"  fill="#122e88"/>
+        <rect x="50"  y="74" width="220" height="2"  fill="#122e88"/>
+        <rect x="52"  y="76" width="216" height="2"  fill="#122e88"/>
+        <rect x="54"  y="78" width="212" height="2"  fill="#122e88"/>
+        <rect x="56"  y="80" width="208" height="2"  fill="#122e88"/>
+        <rect x="58"  y="82" width="204" height="2"  fill="#122e88"/>
+        <rect x="60"  y="84" width="200" height="2"  fill="#122e88"/>
+        <rect x="62"  y="86" width="196" height="2"  fill="#122e88"/>
+        <rect x="64"  y="88" width="192" height="2"  fill="#122e88"/>
+        <rect x="66"  y="90" width="188" height="2"  fill="#122e88"/>
+        <rect x="68"  y="92" width="184" height="2"  fill="#122e88"/>
+        <rect x="70"  y="94" width="180" height="2"  fill="#122e88"/>
+        <rect x="72"  y="96" width="176" height="2"  fill="#122e88"/>
+        <rect x="74"  y="98" width="172" height="2"  fill="#122e88"/>
+        <rect x="76"  y="100" width="168" height="2" fill="#122e88"/>
+        <rect x="78"  y="102" width="164" height="2" fill="#122e88"/>
+        <rect x="80"  y="104" width="160" height="2" fill="#122e88"/>
+        <rect x="82"  y="106" width="156" height="2" fill="#122e88"/>
+        <rect x="84"  y="108" width="152" height="2" fill="#122e88"/>
+        <rect x="86"  y="110" width="148" height="2" fill="#122e88"/>
+        <rect x="88"  y="112" width="144" height="2" fill="#122e88"/>
+        <rect x="90"  y="114" width="140" height="2" fill="#122e88"/>
+        <rect x="92"  y="116" width="136" height="2" fill="#122e88"/>
+        <rect x="94"  y="118" width="132" height="2" fill="#122e88"/>
+        <rect x="96"  y="120" width="128" height="2" fill="#122e88"/>
+        <rect x="98"  y="122" width="124" height="2" fill="#122e88"/>
+        <rect x="100" y="124" width="120" height="2" fill="#122e88"/>
+        <rect x="102" y="126" width="116" height="2" fill="#122e88"/>
+        <rect x="104" y="128" width="112" height="2" fill="#122e88"/>
+        <rect x="106" y="130" width="108" height="2" fill="#122e88"/>
+        <rect x="108" y="132" width="104" height="2" fill="#122e88"/>
+        <rect x="110" y="134" width="100" height="2" fill="#122e88"/>
+        <rect x="112" y="136" width="96"  height="2" fill="#122e88"/>
+        <rect x="114" y="138" width="92"  height="2" fill="#122e88"/>
+        <rect x="116" y="140" width="88"  height="2" fill="#122e88"/>
+        <rect x="118" y="142" width="84"  height="2" fill="#122e88"/>
+        <rect x="120" y="144" width="80"  height="2" fill="#122e88"/>
+        <rect x="122" y="146" width="76"  height="2" fill="#122e88"/>
+        <rect x="124" y="148" width="72"  height="2" fill="#122e88"/>
+        <rect x="126" y="150" width="68"  height="2" fill="#122e88"/>
+        <rect x="128" y="152" width="64"  height="2" fill="#122e88"/>
+        <rect x="130" y="154" width="60"  height="2" fill="#122e88"/>
+        <rect x="132" y="156" width="56"  height="2" fill="#122e88"/>
+        <rect x="134" y="158" width="52"  height="2" fill="#122e88"/>
+        <rect x="136" y="160" width="48"  height="2" fill="#122e88"/>
+        <rect x="138" y="162" width="44"  height="2" fill="#122e88"/>
+        <rect x="140" y="164" width="40"  height="2" fill="#122e88"/>
+        <rect x="142" y="166" width="36"  height="2" fill="#122e88"/>
+        <rect x="144" y="168" width="32"  height="2" fill="#122e88"/>
+        <rect x="146" y="170" width="28"  height="2" fill="#122e88"/>
+        <rect x="148" y="172" width="24"  height="2" fill="#122e88"/>
+        <rect x="150" y="174" width="20"  height="2" fill="#122e88"/>
+        <rect x="152" y="176" width="16"  height="2" fill="#122e88"/>
+        <rect x="154" y="178" width="12"  height="2" fill="#122e88"/>
+        <rect x="156" y="180" width="8"   height="2" fill="#122e88"/>
+        <rect x="158" y="182" width="4"   height="2" fill="#122e88"/>
+        <rect x="160" y="184" width="2"   height="2" fill="#122e88"/>
+        <!-- Top edge highlight -->
+        <rect x="0"   y="24" width="320" height="2"  fill="#2e5cd8"/>
+        <!-- Left staircase edge highlight -->
+        <rect x="0"   y="26" width="1"   height="4"  fill="#2858d0"/>
+        <rect x="2"   y="30" width="1"   height="4"  fill="#2452c8"/>
+        <rect x="4"   y="34" width="1"   height="4"  fill="#2050c4"/>
+        <rect x="6"   y="38" width="1"   height="4"  fill="#1c4cbf"/>
+        <rect x="8"   y="42" width="1"   height="4"  fill="#1848b8"/>
+        <!-- Right staircase edge shadow -->
+        <rect x="319" y="26" width="1"   height="4"  fill="#0a1e68"/>
+        <rect x="317" y="30" width="1"   height="4"  fill="#0c2070"/>
+        <rect x="315" y="34" width="1"   height="4"  fill="#0e2278"/>
+        <rect x="313" y="38" width="1"   height="4"  fill="#102480"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- Opened layout -->
+<div id="opened-layout">
+  <div id="env-static"></div>
+  <div id="pages-stack">
+
+    {% for page in pages %}
+    <div class="page-card" data-index="{{ loop.index0 }}">
+      <div class="page-content">
+        <ul class="page-items">
+          {% for item in page %}
+          <li data-text="{{ item }}"></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="page-nav">
+        <div class="nav-back" onclick="goBack(event)"></div>
+      </div>
+      <span class="nav-pagenum">{{ loop.index }}/{{ pages|length + 1 }}</span>
+    </div>
+    {% endfor %}
+
+    <!-- Photo page -->
+    <div class="page-card photo-page" data-index="{{ pages|length }}">
+      <div class="page-content">
+        <div class="photo-placeholder" id="photo-placeholder" onclick="triggerUpload()"></div>
+        <div class="photo-result" id="photo-result">
+          <img id="photo-img" src="" alt=""/>
+          <button class="complete-btn" id="complete-btn" onclick="handleComplete()">COMPLETE</button>
+          <button class="replace-btn"  onclick="triggerUpload()">REPLACE</button>
+        </div>
+        <p class="upload-status" id="upload-status"></p>
+      </div>
+      <div class="page-nav">
+        <div class="nav-back" onclick="goBack(event)" style="display:block"></div>
+      </div>
+      <span class="nav-pagenum">{{ pages|length + 1 }}/{{ pages|length + 1 }}</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- Final reveal: framed image -->
+<div id="final-reveal">
+  <div id="framed-image-wrap">
+    <img id="final-img" src="" alt=""/>
+    <canvas id="frame-canvas"></canvas>
+  </div>
+</div>
+
+<input type="file" id="photo-input" accept="image/*"/>
+
+<script>
+/* ════════════════════════════════════════════════════
+   SIZING
+════════════════════════════════════════════════════ */
+function applySize() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const envW = Math.min(Math.max(vw * .80, 260), 600);
+  const envH = envW * (200 / 320);
+
+  // Page ratio is 2:3 (width:height). Derive from width cap first,
+  // then check if the resulting height fits; if not, derive from height cap instead.
+  const maxPgW = Math.min(Math.round(vw * .70), 400);
+  const maxPgH = 600;
+
+  let pgW = maxPgW;
+  let pgH = Math.round(pgW * 3 / 2);   // 2:3 ratio
+
+  // If height exceeds cap, constrain by height instead
+  if (pgH > maxPgH) {
+    pgH = maxPgH;
+    pgW = Math.round(pgH * 2 / 3);
+  }
+
+  // Envelope peek: only the left ~15% of the envelope is visible beside the pages
+  const envPeek = Math.round(envW * .15);
+
+  document.documentElement.style.setProperty('--env-w',    envW    + 'px');
+  document.documentElement.style.setProperty('--env-h',    envH    + 'px');
+  document.documentElement.style.setProperty('--page-w',   pgW     + 'px');
+  document.documentElement.style.setProperty('--page-h',   pgH     + 'px');
+  document.documentElement.style.setProperty('--env-peek', envPeek + 'px');
+}
+applySize();
+window.addEventListener('resize', applySize);
+
+/* ── Stars ───────────────────────────────────────── */
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 200; i++) {
+  const s = document.createElement('div');
+  const lg = Math.random() > .85;
+  s.className = 'star'+(lg?' lg':'');
+  const sz = lg ? [3,4][Math.floor(Math.random()*2)] : [1,1,2][Math.floor(Math.random()*3)];
+  s.style.cssText = `width:${sz}px;height:${sz}px;top:${(Math.random()*100).toFixed(2)}%;left:${(Math.random()*100).toFixed(2)}%;--dur:${[.8,1,1.5,2,2.5,3][Math.floor(Math.random()*6)]}s;--del:-${(Math.random()*4).toFixed(2)}s;--op:${[.4,.6,.8,1][Math.floor(Math.random()*4)]};`;
+  starsEl.appendChild(s);
+}
+
+/* ── Sparkles (canvas pixel stars) ──────────────── */
+const PALETTES = [
+  ['#1838a8','#2050d0','#3870e8','#5898f8','#88c0ff','#b8d8ff'],
+  ['#1a42b8','#2558d8','#3c78f0','#62a0ff','#90c4ff','#c0e0ff'],
+  ['#1c3c9a','#2850c0','#3c6cdc','#5890f4','#80b8ff','#aed4ff'],
+  ['#2048c8','#3060e0','#4880f0','#70a8ff','#98c4ff','#c8e0ff'],
+  ['#1450c0','#2268e0','#3888f4','#5ca8ff','#88c8ff','#b8e0ff'],
+  ['#0c2c8c','#1840b0','#2c60d0','#4882e8','#72aaff','#a8ccff'],
+];
+
+const spHost = document.getElementById('sparkle-host');
+function buildSparkles() {
+  spHost.innerHTML = '';
+  const envW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--env-w'));
+  const baseR = envW * .62;
+  const px = Math.max(2, Math.round(envW * .009));
+  const defs = [
+    {pi:0,rM:.78,spd:8,sz:2},{pi:1,rM:.94,spd:11,sz:1},{pi:2,rM:.70,spd:7,sz:2},
+    {pi:3,rM:.86,spd:12,sz:1},{pi:4,rM:1.0,spd:9,sz:2},{pi:5,rM:.75,spd:14,sz:1},
+    {pi:0,rM:.92,spd:6.5,sz:2},{pi:1,rM:.82,spd:13,sz:1},{pi:2,rM:.65,spd:10,sz:2},
+    {pi:3,rM:1.05,spd:8,sz:1},{pi:4,rM:.72,spd:15,sz:2},{pi:5,rM:1.1,spd:9.5,sz:1},
+  ];
+  defs.forEach((d,idx) => {
+    const pal = PALETTES[d.pi];
+    const p = px * d.sz;
+    const w = p * 11;
+    const cvs = document.createElement('canvas');
+    cvs.width = cvs.height = w; cvs.className = 'sp-canvas';
+    const r = Math.round(baseR * d.rM);
+    cvs.style.cssText = `width:${w}px;height:${w}px;margin-left:-${w/2}px;margin-top:-${w/2}px;--r:${r}px;--spd:${d.spd}s;--del:-${(Math.random()*d.spd).toFixed(2)}s;`;
+    const ctx = cvs.getContext('2d');
+    const cx = cy = w/2;
+    function drawStar(pal) {
+      ctx.clearRect(0,0,w,w);
+      const sp = (c,gx,gy) => { ctx.fillStyle=c; ctx.fillRect(cx+gx*p,cy+gy*p,p,p); };
+      sp(pal[5],0,0);
+      sp(pal[4],-1,0); sp(pal[4],1,0); sp(pal[4],0,-1); sp(pal[4],0,1);
+      sp(pal[3],-2,0); sp(pal[3],2,0); sp(pal[3],0,-2); sp(pal[3],0,2);
+      sp(pal[2],-3,0); sp(pal[2],3,0); sp(pal[2],0,-3); sp(pal[2],0,3);
+      sp(pal[3],-1,-1); sp(pal[3],1,-1); sp(pal[3],-1,1); sp(pal[3],1,1);
+      sp(pal[2],-2,-2); sp(pal[2],2,-2); sp(pal[2],-2,2); sp(pal[2],2,2);
+      sp(pal[1],-4,0); sp(pal[1],4,0); sp(pal[1],0,-4); sp(pal[1],0,4);
+      sp(pal[1],-3,-1); sp(pal[1],3,-1); sp(pal[1],-3,1); sp(pal[1],3,1);
+      sp(pal[1],-1,-3); sp(pal[1],1,-3); sp(pal[1],-1,3); sp(pal[1],1,3);
+    }
+    let h = (idx/defs.length)*360;
+    const hs = .3+Math.random()*.5;
+    function anim() {
+      h=(h+hs)%360;
+      const si = Math.floor((h/360)*pal.length);
+      const sp = [...pal.slice(si),...pal.slice(0,si)];
+      drawStar(sp);
+      requestAnimationFrame(anim);
+    }
+    drawStar(pal);
+    requestAnimationFrame(anim);
+    spHost.appendChild(cvs);
+  });
+}
+buildSparkles();
+window.addEventListener('resize', buildSparkles);
+
+/* ════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════ */
+const envWrap      = document.getElementById('env-wrap');
+const spHostEl     = document.getElementById('sparkle-host');
+const sceneEl      = document.getElementById('scene');
+const openedLayout = document.getElementById('opened-layout');
+const envStatic    = document.getElementById('env-static');
+const bloom        = document.getElementById('light-bloom');
+const pagesEl      = [...document.querySelectorAll('.page-card')];
+const totalPages   = pagesEl.length;
+let state          = 'idle';
+let currentPage    = 0;
+const pageReady    = new Array(totalPages).fill(false);
+
+// Typing is deferred until the opening bloom has fully faded
+let bloomDone      = false;
+let pendingTypeIdx = -1;   // page index waiting to start typing
+
+function handleClick() {
+  if (state==='idle')        openEnvelope();
+  else if (state==='paging') attemptNextPage();
+}
+
+/* ── Open envelope ────────────────────────────────── */
+function openEnvelope() {
+  state = 'opening';
+  bloomDone = false;
+  pendingTypeIdx = -1;
+
+  // Fade sparkles out smoothly
+  spHostEl.classList.add('fading');
+
+  envWrap.classList.add('opening');
+
+  // Fire the soft full-screen light bloom
+  setTimeout(() => {
+    bloom.classList.remove('explode');
+    bloom.classList.add('fire');
+
+    // When bloom fully fades out, mark bloomDone and start any pending typewrite
+    bloom.addEventListener('animationend', () => {
+      bloom.classList.remove('fire');
+      bloomDone = true;
+      if (pendingTypeIdx >= 0) {
+        const idx = pendingTypeIdx;
+        pendingTypeIdx = -1;
+        typewritePage(idx);
+      }
+      // Close flap after the light fades
+      const sf = envStatic.querySelector('#flap');
+      if (sf) {
+        sf.style.transition = 'transform 1.1s cubic-bezier(.4,0,.2,1)';
+        sf.style.transformOrigin = '160px 24px';
+        sf.style.transform = 'rotateX(0deg)';
+      }
+    }, {once: true});
+  }, 300);
+
+  // Transition to opened layout mid-bloom so pages are ready underneath
+  setTimeout(() => {
+    envWrap.classList.remove('opening');
+    envWrap.classList.add('opened');
+    transitionToOpenLayout();
+  }, 1100);
+}
+
+/* ── Layout switch ──────────────────────────────────── */
+function transitionToOpenLayout() {
+  const envW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--env-w'));
+  const envH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--env-h'));
+  const pgW  = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-w'));
+  const pgH  = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-h'));
+
+  const svgClone = document.getElementById('envelope-svg').cloneNode(true);
+  svgClone.id = ''; svgClone.style.cssText='width:100%;height:100%;shape-rendering:crispEdges;overflow:visible;position:absolute;inset:0;';
+  const cf = svgClone.querySelector('#flap');
+  if (cf) { cf.style.transform='rotateX(-174deg)'; cf.style.transformOrigin='160px 24px'; cf.style.transition='none'; }
+  envStatic.innerHTML=''; envStatic.appendChild(svgClone);
+  envStatic.style.cssText=`width:${envW}px;height:${envH}px;flex-shrink:0;position:relative;`;
+
+  const stack = document.getElementById('pages-stack');
+  stack.style.cssText=`width:${pgW}px;height:${pgH}px;flex-shrink:0;position:relative;`;
+
+  const peek  = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--env-peek'));
+  // marginRight hides the non-peeking portion of the envelope behind the pages
+  envStatic.style.marginRight = `-${Math.round(envW - peek)}px`;
+  envStatic.style.zIndex='1'; stack.style.zIndex='2';
+
+  sceneEl.style.display='none';
+  openedLayout.classList.add('active');
+  risePages();
+}
+
+/* ── Rise pages ───────────────────────────────────── */
+function risePages() {
+  pagesEl.forEach((p,i)=>{ p.style.zIndex=totalPages-i; });
+  setTimeout(() => {
+    showPage(0);
+    for (let i=1;i<totalPages;i++) {
+      setTimeout(()=>{
+        pagesEl[i].style.transform=`translateX(${i*5}px) translateY(${i*6}px)`;
+        pagesEl[i].style.opacity='1';
+        pagesEl[i].style.transition='transform .4s ease,opacity .3s ease';
+      }, i*100);
+    }
+  }, 150);
+}
+
+/* ── Show page + typewrite ────────────────────────── */
+function showPage(idx) {
+  const pg = pagesEl[idx];
+  pg.style.transition='none';
+  pg.classList.add('rise');
+  pg.addEventListener('animationend', () => {
+    pg.classList.add('active');
+    const back = pg.querySelector('.nav-back');
+    if (back) back.style.display = idx>0?'block':'none';
+    if (!pg.classList.contains('photo-page')) {
+      if (!pageReady[idx]) {
+        // Only start typing once the opening bloom has fully faded
+        if (bloomDone) {
+          typewritePage(idx);
+        } else {
+          // Park the index; bloom animationend will start it
+          pendingTypeIdx = idx;
+          state = 'typing'; // block forward navigation while waiting
+        }
+      } else {
+        // Already fully typed — show as-is, allow navigation
+        pg.style.cursor='pointer';
+        state='paging';
+      }
+    } else {
+      pg.style.cursor='default'; state='paging';
+    }
+  }, {once:true});
+}
+
+/* ── Typewriter ───────────────────────────────────── */
+function typewritePage(pidx) {
+  state='typing';
+  const pg = pagesEl[pidx];
+  const items = [...pg.querySelectorAll('.page-items li')];
+  let li=0, ci=0;
+  items.forEach(el=>{el.classList.add('visible');el.textContent='';});
+  let cur=document.createElement('span'); cur.className='cursor';
+  if(items.length) items[0].appendChild(cur);
+  function next() {
+    if(li>=items.length){ cur.remove(); pageReady[pidx]=true; pg.style.cursor='pointer'; state='paging'; return; }
+    const el=items[li]; const txt=el.dataset.text||'';
+    if(ci<txt.length){ el.insertBefore(document.createTextNode(txt[ci]),cur); ci++;
+      setTimeout(next, txt[ci-1]===' '?40:28+Math.random()*20);
+    } else { li++; ci=0; if(li<items.length) items[li].appendChild(cur); setTimeout(next,120); }
+  }
+  setTimeout(next,200);
+}
+
+function attemptNextPage() {
+  if(state!=='paging') return;
+  if(pagesEl[currentPage].classList.contains('photo-page')) return;
+  goForward();
+}
+
+/* ── Forward ─────────────────────────────────────── */
+function goForward() {
+  if(state!=='paging') return;
+  const cur=currentPage, next=currentPage+1;
+  if(next>=totalPages){ closeAllPages(); return; }
+  state='transition';
+  pagesEl[cur].classList.remove('active'); pagesEl[cur].classList.add('exit'); pagesEl[cur].style.cursor='default';
+  pagesEl[cur].addEventListener('animationend',()=>{
+    pagesEl[cur].classList.remove('exit','rise');
+    pagesEl[cur].style.opacity='1'; pagesEl[cur].style.transition='none'; pagesEl[cur].style.zIndex='1';
+    pagesEl[cur].style.transform=`translateX(${(totalPages-1)*5}px) translateY(${(totalPages-1)*6}px)`;
+    currentPage=next; restack(next); showPage(next);
+  },{once:true});
+}
+
+/* ── Back ────────────────────────────────────────── */
+function goBack(e) {
+  e.stopPropagation();
+  if(state!=='paging'&&state!=='typing') return;
+  if(currentPage===0) return;
+  state='transition';
+  const cur=currentPage, prev=currentPage-1;
+  pagesEl[cur].classList.remove('active'); pagesEl[cur].classList.add('exit'); pagesEl[cur].style.cursor='default';
+  pagesEl[cur].addEventListener('animationend',()=>{
+    pagesEl[cur].classList.remove('exit','rise');
+    pagesEl[cur].style.opacity='1'; pagesEl[cur].style.transition='none';
+    pagesEl[cur].style.zIndex='1'; pagesEl[cur].style.transform=`translateX(${(totalPages-1)*5}px) translateY(${(totalPages-1)*6}px)`;
+    currentPage=prev;
+    restack(prev);
+    // Show prev page — if already typed, showPage will detect pageReady[prev]===true
+    // and skip the typewriter, showing the text immediately as-is
+    showPage(prev);
+  },{once:true});
+}
+
+/* ── Close pages → flap closes ───────────────────── */
+function closeAllPages() {
+  pagesEl.forEach(p=>{ p.style.transition='opacity .3s ease'; p.style.opacity='0'; p.style.pointerEvents='none'; });
+  setTimeout(()=>{
+    const sf=envStatic.querySelector('#flap');
+    if(sf){ sf.style.transition='transform 1.1s cubic-bezier(.4,0,.2,1)'; sf.style.transformOrigin='160px 24px'; sf.style.transform='rotateX(0deg)'; }
+    state='done';
+  },350);
+}
+
+function restack(ti) {
+  for(let i=0;i<totalPages;i++){
+    const rel=(i-ti+totalPages)%totalPages;
+    pagesEl[i].style.zIndex=totalPages-rel;
+    if(i!==ti){ pagesEl[i].style.transition='transform .3s ease'; pagesEl[i].style.transform=`translateX(${rel*5}px) translateY(${rel*6}px)`; }
+  }
+}
+
+/* ── Page stack click ────────────────────────────── */
+document.getElementById('pages-stack').addEventListener('click',(e)=>{
+  if(e.target.closest('.nav-back')) return;
+  if(e.target.closest('.photo-page')) return;
+  attemptNextPage();
+});
+
+/* ════════════════════════════════════════════════════
+   PHOTO UPLOAD
+════════════════════════════════════════════════════ */
+const photoInput   = document.getElementById('photo-input');
+const photoPH      = document.getElementById('photo-placeholder');
+const photoRes     = document.getElementById('photo-result');
+const photoImg     = document.getElementById('photo-img');
+const uploadStatus = document.getElementById('upload-status');
+let   savedPhotoUrl = null;
+
+function triggerUpload(){ photoInput.click(); }
+
+photoInput.addEventListener('change', async(e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  const local=URL.createObjectURL(file);
+  photoImg.src=local; photoPH.style.display='none'; photoRes.style.display='block';
+  uploadStatus.textContent='SAVING...';
+  try {
+    const fd=new FormData(); fd.append('photo',file);
+    const resp=await fetch('/upload-photo',{method:'POST',body:fd});
+    const data=await resp.json();
+    if(data.url){ URL.revokeObjectURL(local); photoImg.src=data.url; savedPhotoUrl=data.url; uploadStatus.textContent=''; }
+    else { uploadStatus.textContent=data.error||'FAILED'; }
+  } catch(err){ console.error(err); uploadStatus.textContent='ERROR'; }
+  photoInput.value='';
+});
+
+/* ════════════════════════════════════════════════════
+   COMPLETE — pages suck back in, flap closes,
+   envelope spins 10s, explosion, framed reveal
+════════════════════════════════════════════════════ */
+function handleComplete() {
+  if(!savedPhotoUrl){ uploadStatus.textContent='SAVE PHOTO FIRST'; return; }
+
+  // 1. Disable all interaction
+  state='completing';
+  document.getElementById('pages-stack').style.pointerEvents='none';
+
+  // 2. Animate all pages sucking back into envelope simultaneously
+  pagesEl.forEach((p,i)=>{
+    p.classList.remove('active');
+    p.style.pointerEvents='none';
+    setTimeout(()=>{
+      p.classList.add('suck');
+    }, i*80);
+  });
+
+  // Wait for all to finish (~total pages * 80 + 500ms suck anim)
+  const suckTime = totalPages * 80 + 600;
+
+  setTimeout(()=>{
+    // 3. Close flap on static clone
+    const sf=envStatic.querySelector('#flap');
+    if(sf){
+      sf.style.transition='transform 1.1s cubic-bezier(.4,0,.2,1)';
+      sf.style.transformOrigin='160px 24px';
+      sf.style.transform='rotateX(0deg)';
+    }
+  }, suckTime);
+
+  // 4. Start spinning the envelope after flap closes
+  setTimeout(()=>{
+    // Move env-static to center of screen for spin
+    openedLayout.style.justifyContent='center';
+    envStatic.style.marginRight='0';
+    envStatic.classList.add('env-spinning');
+  }, suckTime + 1300);
+
+  // 5. After 10 seconds of spin, trigger explosion
+  setTimeout(()=>{
+    envStatic.classList.remove('env-spinning');
+    envStatic.style.opacity='0';
+
+    // Big explosion bloom
+    bloom.classList.remove('fire');
+    bloom.classList.add('explode');
+
+    bloom.addEventListener('animationend', ()=>{
+      bloom.classList.remove('explode');
+      // 6. Show framed image
+      showFramedReveal();
+    },{once:true});
+
+  }, suckTime + 1300 + 10000);
+}
+
+/* ════════════════════════════════════════════════════
+   FRAMED IMAGE REVEAL
+   Pixel border frame drawn on canvas with random
+   blue-tone shapes (rects & circles) only on a border
+   band around the image. Image aspect ratio preserved.
+════════════════════════════════════════════════════ */
+function showFramedReveal() {
+  const finalReveal = document.getElementById('final-reveal');
+  const wrap        = document.getElementById('framed-image-wrap');
+  const finalImg    = document.getElementById('final-img');
+  const frameCanvas = document.getElementById('frame-canvas');
+
+  finalImg.src = savedPhotoUrl;
+  finalReveal.classList.add('active');
+  openedLayout.style.display='none';
+  sceneEl.style.display='none';
+
+  finalImg.onload = () => {
+    // Size the wrap to fill screen while preserving aspect ratio
+    const natW = finalImg.naturalWidth;
+    const natH = finalImg.naturalHeight;
+    const ratio = natW / natH;
+    const maxW  = Math.min(window.innerWidth  * .88, 900);
+    const maxH  = Math.min(window.innerHeight * .88, 700);
+
+    let dispW = maxW, dispH = maxW / ratio;
+    if (dispH > maxH) { dispH = maxH; dispW = maxH * ratio; }
+    dispW = Math.round(dispW); dispH = Math.round(dispH);
+
+    wrap.style.width  = dispW + 'px';
+    wrap.style.height = dispH + 'px';
+    finalImg.style.width  = '100%';
+    finalImg.style.height = '100%';
+    finalImg.style.objectFit = 'cover';
+
+    frameCanvas.width  = dispW;
+    frameCanvas.height = dispH;
+    frameCanvas.style.width  = dispW + 'px';
+    frameCanvas.style.height = dispH + 'px';
+
+    drawPixelFrame(frameCanvas, dispW, dispH);
+
+    // Entrance animation
+    setTimeout(()=>{ wrap.classList.add('reveal'); }, 50);
+  };
+}
+
+function drawPixelFrame(canvas, W, H) {
+  const ctx   = canvas.getContext('2d');
+  const band  = Math.round(Math.min(W, H) * .12);   // border band width
+  ctx.clearRect(0, 0, W, H);
+
+  // Blue tone palette for frame shapes
+  const blues = [
+    [10,  40, 160],[14,  56, 200],[20,  72, 220],[30,  90, 240],
+    [50, 120, 255],[80, 150, 255],[110,180, 255],[150,210, 255],
+    [12,  30, 120],[8,   20,  90],[60, 100, 200],[100,140, 220],
+    [170,220, 255],[200,230, 255],[8,   16,  70],[25,  55, 180],
+  ];
+
+  const rng = (a,b) => a + Math.random()*(b-a);
+
+  // Only draw inside the border band
+  // We'll scatter shapes; reject any that are fully inside inner rect
+  const inner = { x1:band, y1:band, x2:W-band, y2:H-band };
+
+  const shapeCount = Math.floor(W*H*.0018); // density scales with image size
+
+  for (let s = 0; s < shapeCount; s++) {
+    const col = blues[Math.floor(Math.random()*blues.length)];
+    const alpha = 0.45 + Math.random() * 0.55;
+    ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${alpha})`;
+
+    // Random pixel-snapped size
+    const snap = 2; // pixel grid size
+    const sz = Math.round(rng(1,8)) * snap;
+
+    // Random position — bias toward border
+    let x, y;
+    // Pick a border zone: 0=top,1=bottom,2=left,3=right
+    const zone = Math.floor(Math.random()*4);
+    if (zone===0)      { x=rng(0,W);      y=rng(0,band);   }
+    else if (zone===1) { x=rng(0,W);      y=rng(H-band,H); }
+    else if (zone===2) { x=rng(0,band);   y=rng(0,H);      }
+    else               { x=rng(W-band,W); y=rng(0,H);      }
+
+    x = Math.round(x/snap)*snap;
+    y = Math.round(y/snap)*snap;
+
+    // Shape type: rect (70%) or circle (30%)
+    if (Math.random() < 0.7) {
+      // Rectangle — vary aspect ratio
+      const w = sz;
+      const h = Math.round(rng(1,6))*snap;
+      ctx.fillRect(x - w/2, y - h/2, w, h);
+      // Optional 1px darker outline
+      const darkerCol = blues[Math.floor(Math.random()*blues.length)];
+      ctx.fillStyle = `rgba(${darkerCol[0]},${darkerCol[1]},${darkerCol[2]},${alpha*.5})`;
+      ctx.fillRect(x - w/2 - 2, y - h/2 - 2, w+4, 2);   // top edge
+      ctx.fillRect(x - w/2 - 2, y + h/2,     w+4, 2);   // bottom edge
+    } else {
+      // Circle (pixel approximation — rounded rect)
+      const r = sz/2;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Add some bright accent pixels scattered in the border
+  for (let a = 0; a < Math.round(shapeCount * .4); a++) {
+    const zone = Math.floor(Math.random()*4);
+    let x,y;
+    if (zone===0)      { x=rng(0,W);      y=rng(0,band/2);     }
+    else if (zone===1) { x=rng(0,W);      y=rng(H-band/2,H);   }
+    else if (zone===2) { x=rng(0,band/2); y=rng(0,H);          }
+    else               { x=rng(W-band/2,W); y=rng(0,H);        }
+    ctx.fillStyle = `rgba(180,220,255,${.3+Math.random()*.5})`;
+    ctx.fillRect(Math.round(x/2)*2, Math.round(y/2)*2, 2, 2);
+  }
+}
+</script>
+</body>
+</html>
