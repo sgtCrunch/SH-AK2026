@@ -112,6 +112,12 @@ def clean_text(text):
 @app.route('/<path:path>')
 def letter(path):
     print(f"Received request for path: {path}")
+    
+    # Check if path exists in Clues to prevent KeyError from malicious requests
+    if path not in Clues:
+        from flask import abort
+        abort(404)
+    
     clue_img_url = f'/static/clue-imgs/{path}.jpg'
     cleaned_text = clean_text(Clues[path])
     pages = [[clue_img_url, cleaned_text]]
@@ -123,11 +129,21 @@ def letter(path):
 
 @app.route('/<path:path>/completed')
 def note(path):
+    # Check if path exists in travel_clues to prevent KeyError
+    if path not in travel_clues:
+        from flask import abort
+        abort(404)
+    
     travel_clue = travel_clues[path]
 
     return render_template('travel-clue.html',
                            background_url=f'/static/backgrounds/travel-clue.gif', 
                            clue=clean_text(travel_clue))
+
+
+@app.route('/robots.txt')
+def robots():
+    return app.send_static_file('robots.txt')
 
 
 @app.route('/upload-photo', methods=['POST'])

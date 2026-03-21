@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /wp-admin/
+Disallow: /wordpress/
+Disallow: /wp-content/
+Disallow: /wp-includes/
+Disallow: /admin/
+Disallow: /administrator/
+Disallow: /phpmyadmin/
+Disallow: /.env
+Disallow: /.git/
