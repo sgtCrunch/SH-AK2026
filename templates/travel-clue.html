@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clue Revealed</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles/blue-letters.css') }}"/>
+  <style>
+    /* Travel page styling - parchment appearance without absolute positioning */
+    #travel-page {
+      width: var(--page-w);
+      height: var(--page-h);
+      overflow: hidden;
+      background: var(--p0);
+      /* Clean straight border — no tattered edges */
+      outline: 2px solid var(--p4);
+      box-shadow:
+        2px 0 0 0 var(--p4), -2px 0 0 0 var(--p4),
+        0 2px 0 0 var(--p4), 0 -2px 0 0 var(--p4),
+        6px 6px 0 2px rgba(0,0,0,.45),
+        inset 2px 2px 0 0 rgba(255,255,220,.45),
+        inset -2px -2px 0 0 rgba(0,0,0,.08);
+      padding: 22px 20px 52px 20px;
+      opacity: 0; /* Start invisible */
+      pointer-events: none;
+      transform: translateX(-60px); /* Start off-screen */
+      transition: opacity 2s ease-out, transform 2s ease-out; /* Smooth fade and slide */
+      background-color: var(--p0);
+      background-image:
+        /* Horizontal crease line — roughly at 1/3 from top */
+        linear-gradient(transparent calc(33% - 1px), rgba(90,70,10,.18) calc(33%), rgba(200,180,80,.12) calc(33% + 1px), rgba(255,245,190,.22) calc(33% + 2px), transparent calc(33% + 3px)),
+        /* Second horizontal crease — at 2/3 */
+        linear-gradient(transparent calc(66% - 1px), rgba(90,70,10,.12) calc(66%), rgba(200,180,80,.08) calc(66% + 1px), rgba(255,245,190,.16) calc(66% + 2px), transparent calc(66% + 3px)),
+        /* Fine crosshatch grain */
+        repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(120,100,30,.03) 3px, rgba(120,100,30,.03) 4px),
+        repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(120,100,30,.03) 3px, rgba(120,100,30,.03) 4px),
+        /* Aged stain blotches */
+        radial-gradient(ellipse 28% 18% at 22% 78%, rgba(160,130,50,.06) 0%, transparent 100%),
+        radial-gradient(ellipse 18% 28% at 72% 24%, rgba(160,130,50,.04) 0%, transparent 100%);
+    }
+
+    /* Crease shadow lines — horizontal folds only */
+    #travel-page::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(transparent calc(33% - 2px), rgba(60,45,5,.10) calc(33% - 2px), rgba(60,45,5,.10) calc(33%), transparent calc(33%)),
+        linear-gradient(transparent calc(66% - 2px), rgba(60,45,5,.08) calc(66% - 2px), rgba(60,45,5,.08) calc(66%), transparent calc(66%));
+      z-index: 0;
+    }
+
+    /* Crease highlight — horizontal folds only */
+    #travel-page::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(transparent calc(33% + 2px), rgba(255,250,200,.30) calc(33% + 2px), rgba(255,250,200,.30) calc(33% + 5px), transparent calc(33% + 5px)),
+        linear-gradient(transparent calc(66% + 2px), rgba(255,250,200,.22) calc(66% + 2px), rgba(255,250,200,.22) calc(66% + 5px), transparent calc(66% + 5px));
+      z-index: 0;
+    }
+    
+    #travel-text-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    #travel-text {
+      font-family: 'VT323', monospace;
+      font-size: 22px;
+      color: var(--ink);
+      line-height: 1.6;
+      word-break: break-word;
+      margin: 0;
+      padding: 0;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 18px;
+      background: var(--ink);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: cursor-blink 0.6s steps(1) infinite;
+    }
+
+    @keyframes cursor-blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+  </style>
+</head>
+
+<body data-background-url="{{ background_url }}">
+
+<div id="stars"></div>
+<div id="light-bloom"></div>
+
+<!-- Background image -->
+<div id="background-image"></div>
+
+<!-- Centered travel clue page -->
+<div id="scene">
+  <div id="travel-page">
+    <div class="page-content">
+      <div id="travel-text-container">
+        <p id="travel-text" data-text="{{ clue }}"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   SIZING
+════════════════════════════════════════════════════ */
+function applySize() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const maxPgW = Math.min(Math.round(vw * .70), 400);
+  const maxPgH = 600;
+
+  let pgW = maxPgW;
+  let pgH = Math.round(pgW * 3 / 2);
+
+  if (pgH > maxPgH) {
+    pgH = maxPgH;
+    pgW = Math.round(pgH * 2 / 3);
+  }
+
+  document.documentElement.style.setProperty('--page-w', pgW + 'px');
+  document.documentElement.style.setProperty('--page-h', pgH + 'px');
+}
+applySize();
+window.addEventListener('resize', applySize);
+
+/* ════════════════════════════════════════════════════
+   BACKGROUND IMAGE AND FADE-IN
+════════════════════════════════════════════════════ */
+const bgImage = document.getElementById('background-image');
+const backgroundUrl = document.body.dataset.backgroundUrl;
+if (backgroundUrl) {
+  bgImage.style.backgroundImage = `url('${backgroundUrl}')`;
+}
+
+// Fade in page after 3 seconds
+const travelPage = document.getElementById('travel-page');
+setTimeout(() => {
+  travelPage.style.opacity = '0.9';
+  travelPage.style.pointerEvents = 'auto';
+  travelPage.style.transform = 'translateX(0)';
+  // Start typewriter after fade-in is complete (2s)
+  setTimeout(() => {
+    typewriteTravelText();
+  }, 2000);
+}, 3000);
+
+/* ════════════════════════════════════════════════════
+   TYPEWRITER EFFECT
+════════════════════════════════════════════════════ */
+function typewriteTravelText() {
+  const textEl = document.getElementById('travel-text');
+  const textContainer = document.getElementById('travel-text-container');
+  const txt = textEl.dataset.text || '';
+  
+  let ci = 0;
+  textEl.textContent = '';
+  let cur = document.createElement('span');
+  cur.className = 'cursor';
+  textEl.appendChild(cur);
+  
+  function next() {
+    if (ci >= txt.length) {
+      cur.remove();
+      return;
+    }
+    textEl.insertBefore(document.createTextNode(txt[ci]), cur);
+    ci++;
+    // Auto-scroll as text types
+    if (textContainer) {
+      textContainer.scrollTop = textContainer.scrollHeight;
+    }
+    setTimeout(next, txt[ci - 1] === ' ' ? 40 : 28 + Math.random() * 20);
+  }
+  setTimeout(next, 200);
+}
+</script>
+</body>
+</html>

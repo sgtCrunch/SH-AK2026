@@ -1,288 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pixel Letter</title>
+  <title>Happy Birthday Anushe!</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet"/>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; image-rendering: pixelated; image-rendering: crisp-edges; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
-
-    :root {
-      --env-w: 560px; --env-h: 350px; --page-w: 420px; --page-h: 80vh; --env-peek: 196px;
-      --p0: #e8ddb0; --p1: #d9ca8c; --p2: #c4b064; --p3: #a08832; --p4: #7a6418;
-      --ink: #160e00;
-      /* Solid blue envelope */
-      --eb: #1a3dab;   /* main body  */
-      --eh: #3060e0;   /* highlights */
-      --es: #0e2070;   /* shadow     */
-    }
-
-    html, body { width:100%; height:100%; background:#030510; overflow:hidden; font-family:'Press Start 2P',monospace; cursor:crosshair; }
-
-    /* ── Stars ─────────────────────────────────────────────── */
-    #stars { position:fixed; inset:0; pointer-events:none; z-index:1; }
-    .star  { position:absolute; background:#c8deff; animation:blink var(--dur) steps(1) infinite var(--del); }
-    .star.lg::before,.star.lg::after { content:''; position:absolute; background:inherit; }
-    .star.lg::before { width:100%; height:300%; top:-100%; left:0; }
-    .star.lg::after  { width:300%; height:100%; left:-100%; top:0; }
-    @keyframes blink { 0%,49%,100%{opacity:0} 50%,99%{opacity:var(--op)} }
-
-    /* ── Scene ─────────────────────────────────────────────── */
-    #scene { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; }
-
-    /* ── Float ─────────────────────────────────────────────── */
-    #env-wrap { position:relative; width:var(--env-w); height:var(--env-h); cursor:pointer; flex-shrink:0; animation:floatUD 4s ease-in-out infinite; }
-    #env-wrap.opening,#env-wrap.opened { animation:none; }
-    @keyframes floatUD { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-28px)} }
-
-    #envelope-svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; shape-rendering:crispEdges; }
-
-    /* ── Flap pivot at y=24 (its own top edge in 320×200 viewBox) ── */
-    #flap { transform-origin:160px 24px; transition:transform 1.1s cubic-bezier(.4,0,.2,1); }
-    .opening #flap, .opened #flap { transform:rotateX(-174deg); }
-
-    /* ── Sparkles ─────────────────────────────────────────── */
-    #sparkle-host { position:absolute; top:50%; left:50%; width:0; height:0; pointer-events:none; z-index:5; transition:opacity 1.6s ease-out; }
-    #sparkle-host.fading { opacity:0; }
-    .sp-canvas { position:absolute; animation:pixOrbit var(--spd) linear infinite var(--del); }
-    @keyframes pixOrbit { from{transform:rotate(0deg) translateX(var(--r)) rotate(0deg)} to{transform:rotate(360deg) translateX(var(--r)) rotate(-360deg)} }
-
-    /* ══ SOFT FULL-SCREEN LIGHT ════════════════════════════════
-       A single fixed div expands from the envelope and fills
-       the entire screen with a smooth, even, soft white light
-       then fades. No hard edges — pure opacity transition.
-    ═══════════════════════════════════════════════════════════ */
-    #light-bloom {
-      position:fixed; inset:0; pointer-events:none; z-index:45;
-      opacity:0;
-      background:rgba(220,238,255,1);
-    }
-    #light-bloom.fire { animation:fullBloom 3.8s ease-in-out forwards; }
-    @keyframes fullBloom {
-      0%   { opacity:0; }
-      25%  { opacity:.88; }
-      50%  { opacity:.95; }
-      70%  { opacity:.88; }
-      100% { opacity:0; }
-    }
-
-    /* Explosion bloom (after spin) — brighter, faster */
-    #light-bloom.explode { animation:explodeBloom 2.5s ease-out forwards; }
-    @keyframes explodeBloom {
-      0%   { opacity:0; }
-      15%  { opacity:1; }
-      45%  { opacity:.9; }
-      100% { opacity:0; }
-    }
-
-    /* ── Opened layout ──────────────────────────────────────── */
-    #opened-layout { display:none; position:fixed; inset:0; z-index:20; align-items:center; justify-content:center; }
-    #opened-layout.active { display:flex; }
-    #env-static  { position:relative; flex-shrink:0; }
-    #pages-stack { position:relative; flex-shrink:0; }
-
-    /* ── Page card ──────────────────────────────────────────── */
-    .page-card {
-      position:absolute; top:0; left:0;
-      /* min 60vw wide, min 80vh tall — responsive via JS */
-      width:var(--page-w); height:var(--page-h);
-      overflow:hidden;
-      background:var(--p0);
-      /* Clean straight border — no tattered edges */
-      outline:2px solid var(--p4);
-      box-shadow:
-        2px 0 0 0 var(--p4), -2px 0 0 0 var(--p4),
-        0 2px 0 0 var(--p4), 0 -2px 0 0 var(--p4),
-        6px 6px 0 2px rgba(0,0,0,.45),
-        inset 2px 2px 0 0 rgba(255,255,220,.45),
-        inset -2px -2px 0 0 rgba(0,0,0,.08);
-      padding:22px 20px 52px 20px;
-      opacity:0; pointer-events:none; transform:translateX(-60px);
-      background-color: var(--p0);
-      background-image:
-        /* Horizontal crease line — roughly at 1/3 from top */
-        linear-gradient(transparent calc(33% - 1px), rgba(90,70,10,.18) calc(33%), rgba(200,180,80,.12) calc(33% + 1px), rgba(255,245,190,.22) calc(33% + 2px), transparent calc(33% + 3px)),
-        /* Second horizontal crease — at 2/3 */
-        linear-gradient(transparent calc(66% - 1px), rgba(90,70,10,.12) calc(66%), rgba(200,180,80,.08) calc(66% + 1px), rgba(255,245,190,.16) calc(66% + 2px), transparent calc(66% + 3px)),
-        /* Fine crosshatch grain */
-        repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(120,100,30,.03) 3px, rgba(120,100,30,.03) 4px),
-        repeating-linear-gradient(0deg,  transparent 0, transparent 3px, rgba(120,100,30,.03) 3px, rgba(120,100,30,.03) 4px),
-        /* Aged stain blotches */
-        radial-gradient(ellipse 28% 18% at 22% 78%, rgba(160,130,50,.06) 0%, transparent 100%),
-        radial-gradient(ellipse 18% 28% at 72% 24%, rgba(160,130,50,.04) 0%, transparent 100%);
-    }
-
-    /* Crease shadow lines — horizontal folds only */
-    .page-card::before {
-      content:''; position:absolute; inset:0; pointer-events:none;
-      background:
-        linear-gradient(transparent calc(33% - 2px), rgba(60,45,5,.10) calc(33% - 2px), rgba(60,45,5,.10) calc(33%), transparent calc(33%)),
-        linear-gradient(transparent calc(66% - 2px), rgba(60,45,5,.08) calc(66% - 2px), rgba(60,45,5,.08) calc(66%), transparent calc(66%));
-      z-index:0;
-    }
-
-    /* Crease highlight — horizontal folds only */
-    .page-card::after {
-      content:''; position:absolute; inset:0; pointer-events:none;
-      background:
-        linear-gradient(transparent calc(33% + 2px), rgba(255,250,200,.30) calc(33% + 2px), rgba(255,250,200,.30) calc(33% + 5px), transparent calc(33% + 5px)),
-        linear-gradient(transparent calc(66% + 2px), rgba(255,250,200,.22) calc(66% + 2px), rgba(255,250,200,.22) calc(66% + 5px), transparent calc(66% + 5px));
-      z-index:0;
-    }
-
-    /* ── Page animations ────────────────────────────────────── */
-    .page-card.rise   { animation:pageRise .65s ease-out forwards; }
-    @keyframes pageRise {
-      0%  {transform:translateX(-80px) translateY(20px);opacity:0}
-      15% {opacity:1}
-      75% {transform:translateX(4px) translateY(-4px);opacity:1}
-      100%{transform:translateX(0) translateY(0);opacity:1}
-    }
-    .page-card.active { pointer-events:auto; }
-    .page-card.exit   { animation:pageExit .35s ease-in forwards; }
-    @keyframes pageExit {
-      0%  {transform:translateX(0) translateY(0);opacity:1}
-      100%{transform:translateX(-50px) translateY(10px);opacity:0}
-    }
-    /* Return into envelope */
-    .page-card.suck   { animation:pageSuck .5s ease-in forwards; }
-    @keyframes pageSuck {
-      0%  {transform:translateX(0) translateY(0) scale(1);opacity:1}
-      100%{transform:translateX(-80px) translateY(30px) scale(.5);opacity:0}
-    }
-
-    /* ── Envelope spin animation ────────────────────────────── */
-    .env-spinning {
-      animation:envSpin 0.5s linear infinite !important;
-    }
-    @keyframes envSpin {
-      from{transform:rotate(0deg)}
-      to  {transform:rotate(360deg)}
-    }
-
-    /* ── Page content ────────────────────────────────────────── */
-    .page-content { height:100%; overflow-y:auto; position:relative; z-index:1; }
-
-    .page-items { list-style:none; }
-    .page-items li {
-      font-family:'VT323',monospace; font-size:22px; color:var(--ink);
-      line-height:1.6; padding:3px 0 3px 18px; position:relative;
-      visibility:hidden;
-    }
-    .page-items li.visible { visibility:visible; }
-    .page-items li.visible::before {
-      content:''; position:absolute; left:4px; top:13px;
-      width:4px; height:4px; background:var(--p3);
-      box-shadow:2px 0 0 0 var(--p4),0 2px 0 0 var(--p4);
-    }
-    .page-items li+li {
-      background-image:repeating-linear-gradient(90deg,var(--p2) 0,var(--p2) 3px,transparent 3px,transparent 6px);
-      background-size:100% 1px; background-position:0 0; background-repeat:no-repeat;
-    }
-    .cursor { display:inline-block; width:8px; height:18px; background:var(--ink); margin-left:2px; vertical-align:middle; animation:cursorBlink .6s steps(1) infinite; }
-    @keyframes cursorBlink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-
-    /* ── Nav bar ─────────────────────────────────────────────── */
-    .page-nav { position:absolute; bottom:10px; left:0; right:0; padding:0 14px; display:flex; align-items:center; justify-content:space-between; pointer-events:none; z-index:2; }
-
-    /* Back arrow — proper left-pointing arrow */
-    .nav-back {
-      pointer-events:auto; cursor:pointer;
-      width:32px; height:24px; position:relative; opacity:.6; transition:opacity .15s; display:none;
-    }
-    .nav-back:hover { opacity:1; }
-    /* Arrow head (left-pointing) */
-    .nav-back::before {
-      content:''; position:absolute; left:0; top:50%; transform:translateY(-50%);
-      width:0; height:0;
-      border-top:8px solid transparent;
-      border-bottom:8px solid transparent;
-      border-right:10px solid var(--p4);
-      image-rendering:auto;
-    }
-    /* Shaft */
-    .nav-back::after {
-      content:''; position:absolute; left:8px; top:50%; transform:translateY(-50%);
-      width:18px; height:4px; background:var(--p4);
-    }
-
-    .nav-pagenum {
-      position:absolute; bottom:12px; right:14px;
-      font-family:'Press Start 2P',monospace; font-size:6px; color:var(--p3); opacity:.55; letter-spacing:.05em;
-      pointer-events:none; z-index:2;
-    }
-
-    /* ── Photo page ──────────────────────────────────────────── */
-    .photo-placeholder {
-      width:100%; aspect-ratio:4/3; max-height:55vh;
-      background:repeating-linear-gradient(45deg,rgba(160,136,50,.07) 0,rgba(160,136,50,.07) 3px,transparent 3px,transparent 9px),var(--p1);
-      outline:2px dashed var(--p3); cursor:pointer;
-    }
-    .photo-placeholder:hover { background:repeating-linear-gradient(45deg,rgba(160,136,50,.13) 0,rgba(160,136,50,.13) 3px,transparent 3px,transparent 9px),#d4c47e; }
-
-    .photo-result { display:none; width:100%; }
-    .photo-result img { width:100%; max-height:55vh; object-fit:contain; object-position:center; display:block; outline:2px solid var(--p3); box-shadow:4px 4px 0 2px rgba(0,0,0,.4); }
-
-    /* Complete button */
-    .complete-btn {
-      display:block; margin:10px auto 0;
-      font-family:'Press Start 2P',monospace; font-size:7px;
-      color:#fff; background:#1a3dab;
-      border:2px solid #3060e0; padding:8px 14px;
-      cursor:pointer; letter-spacing:.08em;
-    }
-    .complete-btn:hover { background:#2050cc; }
-
-    .replace-btn {
-      display:block; margin:4px auto 0;
-      font-family:'Press Start 2P',monospace; font-size:5px; color:var(--p4);
-      background:var(--p1); border:2px solid var(--p3); padding:4px 8px; cursor:pointer;
-    }
-    .replace-btn:hover { background:var(--p2); }
-
-    .upload-status { font-family:'Press Start 2P',monospace; font-size:5px; color:var(--p4); text-align:center; margin-top:5px; min-height:12px; }
-    #photo-input { display:none; }
-
-    /* ── Final reveal ────────────────────────────────────────── */
-    #final-reveal {
-      display:none; position:fixed; inset:0; z-index:60;
-      align-items:center; justify-content:center;
-      background:#030510;
-    }
-    #final-reveal.active { display:flex; }
-
-    #framed-image-wrap {
-      position:relative;
-      /* sized by JS to preserve aspect ratio */
-    }
-    #framed-image-wrap img {
-      display:block; width:100%; height:100%;
-      object-fit:contain;
-    }
-    /* The pixel border frame canvas sits on top */
-    #frame-canvas {
-      position:absolute; inset:0;
-      pointer-events:none;
-    }
-
-    /* Reveal entrance animation */
-    #framed-image-wrap {
-      opacity:0;
-      animation:none;
-    }
-    #framed-image-wrap.reveal { animation:imgReveal 1.2s ease-out forwards; }
-    @keyframes imgReveal {
-      0%  {opacity:0; transform:scale(.8)}
-      60% {opacity:1; transform:scale(1.03)}
-      100%{opacity:1; transform:scale(1)}
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles/blue-letters.css') }}"/>
 </head>
-<body>
+
+<body data-redirect-url="{{ redirect_url }}" data-background-url="{{ background_url }}">
 
 <div id="stars"></div>
 <div id="light-bloom"></div>
+
+<!-- Background image -->
+<div id="background-image"></div>
 
 <!-- Idle: floating envelope -->
 <div id="scene">
@@ -374,6 +107,11 @@
       <rect x="0"   y="24"  width="2"   height="176" fill="#4070f0"/>
       <rect x="318" y="24"  width="2"   height="176" fill="#0c1e78"/>
       <rect x="0"   y="198" width="320" height="2"   fill="#0c1e78"/>
+
+      <!-- ═══ ENVELOPE INTERIOR — revealed when flap opens ══
+           Light blue triangle behind the flap, pointing downward.
+      ══════════════════════════════════════════════════════ -->
+      <polygon id="envelope-interior" points="0,24 160,184 320,24" fill="#4080f8" opacity="0.7"/>
 
       <!-- ═══ FLAP — pixel staircase triangle, darker blue ══
            Pivots around y=24 (its own top edge, x=0..320).
@@ -487,18 +225,23 @@
   <div id="pages-stack">
 
     {% for page in pages %}
-    <div class="page-card" data-index="{{ loop.index0 }}">
+    <div class="page-card" data-index="{{ loop.index }}">
       <div class="page-content">
-        <ul class="page-items">
-          {% for item in page %}
-          <li data-text="{{ item }}"></li>
-          {% endfor %}
-        </ul>
+        {% if page[0] %}
+          <div class="image-wrapper">
+            <img src="{{ page[0] }}" alt="clue image" class="page-image"/>
+          </div>
+        {% endif %}
+        {% if page[1] %}
+        <div class="page-text-container">
+          <p class="page-text" data-text="{{ page[1] }}"></p>
+        </div>
+        {% endif %}
       </div>
-      <div class="page-nav">
-        <div class="nav-back" onclick="goBack(event)"></div>
+      <div class="page-footer">
+        <span class="page-number">{{ loop.index }}/{{ pages|length + 1 }}</span>
+        <button class="nav-back" onclick="goBack(event)"></button>
       </div>
-      <span class="nav-pagenum">{{ loop.index }}/{{ pages|length + 1 }}</span>
     </div>
     {% endfor %}
 
@@ -513,10 +256,10 @@
         </div>
         <p class="upload-status" id="upload-status"></p>
       </div>
-      <div class="page-nav">
-        <div class="nav-back" onclick="goBack(event)" style="display:block"></div>
+      <div class="page-footer">
+        <span class="page-number">{{ pages|length + 1 }}/{{ pages|length + 1 }}</span>
+        <button class="nav-back" onclick="goBack(event)" style="display:block;"></button>
       </div>
-      <span class="nav-pagenum">{{ pages|length + 1 }}/{{ pages|length + 1 }}</span>
     </div>
 
   </div>
@@ -661,6 +404,22 @@ const pageReady    = new Array(totalPages).fill(false);
 let bloomDone      = false;
 let pendingTypeIdx = -1;   // page index waiting to start typing
 
+/* ════════════════════════════════════════════════════
+   BACKGROUND IMAGE AND ENVELOPE ENTRANCE
+════════════════════════════════════════════════════ */
+const bgImage = document.getElementById('background-image');
+const backgroundUrl = document.body.dataset.backgroundUrl;
+if (backgroundUrl) {
+  bgImage.style.backgroundImage = `url('${backgroundUrl}')`;
+}
+
+// Hide envelope initially, fade in after 2 seconds
+envWrap.style.opacity = '0';
+envWrap.style.transition = 'opacity 1.2s ease-in-out';
+setTimeout(() => {
+  envWrap.style.opacity = '1';
+}, 2000);
+
 function handleClick() {
   if (state==='idle')        openEnvelope();
   else if (state==='paging') attemptNextPage();
@@ -785,19 +544,27 @@ function showPage(idx) {
 function typewritePage(pidx) {
   state='typing';
   const pg = pagesEl[pidx];
-  const items = [...pg.querySelectorAll('.page-items li')];
-  let li=0, ci=0;
-  items.forEach(el=>{el.classList.add('visible');el.textContent='';});
-  let cur=document.createElement('span'); cur.className='cursor';
-  if(items.length) items[0].appendChild(cur);
+  const textEl = pg.querySelector('.page-text');
+  const textContainer = pg.querySelector('.page-text-container');
+  if (!textEl) { pageReady[pidx]=true; pg.style.cursor='pointer'; state='paging'; return; }
+  
+  const txt = textEl.dataset.text || '';
+  let ci = 0;
+  textEl.textContent = '';
+  let cur = document.createElement('span'); cur.className='cursor';
+  textEl.appendChild(cur);
+  
   function next() {
-    if(li>=items.length){ cur.remove(); pageReady[pidx]=true; pg.style.cursor='pointer'; state='paging'; return; }
-    const el=items[li]; const txt=el.dataset.text||'';
-    if(ci<txt.length){ el.insertBefore(document.createTextNode(txt[ci]),cur); ci++;
-      setTimeout(next, txt[ci-1]===' '?40:28+Math.random()*20);
-    } else { li++; ci=0; if(li<items.length) items[li].appendChild(cur); setTimeout(next,120); }
+    if(ci >= txt.length) { cur.remove(); pageReady[pidx]=true; pg.style.cursor='pointer'; state='paging'; return; }
+    textEl.insertBefore(document.createTextNode(txt[ci]), cur);
+    ci++;
+    // Auto-scroll as text types
+    if(textContainer) {
+      textContainer.scrollTop = textContainer.scrollHeight;
+    }
+    setTimeout(next, txt[ci-1]===' '?40:28+Math.random()*20);
   }
-  setTimeout(next,200);
+  setTimeout(next, 200);
 }
 
 function attemptNextPage() {
@@ -889,13 +656,13 @@ photoInput.addEventListener('change', async(e)=>{
     const data=await resp.json();
     if(data.url){ URL.revokeObjectURL(local); photoImg.src=data.url; savedPhotoUrl=data.url; uploadStatus.textContent=''; }
     else { uploadStatus.textContent=data.error||'FAILED'; }
-  } catch(err){ console.error(err); uploadStatus.textContent='ERROR'; }
+  } catch(err){ console.error(err); }
   photoInput.value='';
 });
 
 /* ════════════════════════════════════════════════════
    COMPLETE — pages suck back in, flap closes,
-   envelope spins 10s, explosion, framed reveal
+   envelope spins 5s, then redirect
 ════════════════════════════════════════════════════ */
 function handleComplete() {
   if(!savedPhotoUrl){ uploadStatus.textContent='SAVE PHOTO FIRST'; return; }
@@ -930,26 +697,17 @@ function handleComplete() {
   setTimeout(()=>{
     // Move env-static to center of screen for spin
     openedLayout.style.justifyContent='center';
+    openedLayout.style.alignItems='center';
     envStatic.style.marginRight='0';
     envStatic.classList.add('env-spinning');
   }, suckTime + 1300);
 
-  // 5. After 10 seconds of spin, trigger explosion
+  // 5. After 5 seconds of spin, redirect to the redirect_url
   setTimeout(()=>{
-    envStatic.classList.remove('env-spinning');
-    envStatic.style.opacity='0';
-
-    // Big explosion bloom
-    bloom.classList.remove('fire');
-    bloom.classList.add('explode');
-
-    bloom.addEventListener('animationend', ()=>{
-      bloom.classList.remove('explode');
-      // 6. Show framed image
-      showFramedReveal();
-    },{once:true});
-
-  }, suckTime + 1300 + 10000);
+    // Redirect to the URL passed from Flask
+    const redirectUrl = document.body.dataset.redirectUrl || '/';
+    window.location.href = redirectUrl;
+  }, suckTime + 1300 + 5000);
 }
 
 /* ════════════════════════════════════════════════════
