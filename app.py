@@ -1,8 +1,20 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 
 app = Flask(__name__)
+
+# Fix proxy headers when behind Nginx
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+# Force HTTPS in production
+@app.before_request
+def force_https():
+    if not request.is_secure and not app.debug:
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
 
 # ── Config ────────────────────────────────────────────────
 UPLOAD_FOLDER   = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
