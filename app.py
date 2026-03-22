@@ -6,19 +6,10 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 
-app.config['PREFERRED_URL_SCHEME'] = 'https'
+#app.config['PREFERRED_URL_SCHEME'] = 'https'
 # Fix proxy headers when behind Nginx
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+#app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-@app.before_request
-def force_https():
-    if app.debug:
-        return
-
-    proto = request.headers.get('X-Forwarded-Proto', '').lower()
-    if proto != 'https':
-        url = request.url.replace('http://', 'https://', 1)
-        return redirect(url, code=301)
 
 # ── Config ────────────────────────────────────────────────
 UPLOAD_FOLDER   = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
