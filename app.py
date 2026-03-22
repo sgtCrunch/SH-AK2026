@@ -10,12 +10,13 @@ app.config['PREFERRED_URL_SCHEME'] = 'https'
 # Fix proxy headers when behind Nginx
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-# Force HTTPS in production
 @app.before_request
 def force_https():
-    # nginx should set this:
-    proto = request.headers.get('X-Forwarded-Proto', 'http')
-    if proto != 'https' and not app.debug:
+    if app.debug:
+        return
+
+    proto = request.headers.get('X-Forwarded-Proto', '').lower()
+    if proto != 'https':
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
 
