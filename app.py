@@ -115,7 +115,7 @@ def clean_text(text):
 
 # ── Routes ────────────────────────────────────────────────
 # This route handles the root URL, e.g., "/"
-@app.route('/', defaults={'path': ''})
+#@app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def letter(path):
     print(f"Received request for path: {path}")
