@@ -35,15 +35,12 @@ Clues = {
     "end-clue":'''Happy Birthday Anushe!''',
     "eyebrow-clue":'''Huh, you looking at me? Remember, its a momentous occasion, 
                       don't forget why we are here. You know even Caesar would agree. You haven't 
-                      met him? Ask your namesake, he defintely knows him. For this challenge,
+                      met him? Ask your namesake, he defintely knows him. For the challenge,
                       decypher this: "ilqg brxu idyrulwh errn dqg wdnh d skrwr dv d jurxs."
                       Don't be afraid to use techology!''',
     "avo-clue": '''Phew that was fun! Being 
-                    one with nature is important.
-                    I mean look at Anushe in this photo! There's
-                    something calming about rituals. For this challenge,
-                    walk through the labyrinth and find your inner peace.
-                    Take a photo of you in the labyrinth and upload it on the next page!
+                    one with nature is important. For this challenge, 
+                    take a photo with the view!
                     ''',
     "peace-clue":'''Peace out hombre! I hope you enjoyed the journey. I know I have.
                     For the last challenge, someone for goodness sake take an action shot of
@@ -71,21 +68,20 @@ Clues = {
 
 travel_clues = {
     "weird-clue":'''Beautiful poses! Truly breathtaking! 
-                    To find your next location, must with all your 
-                    Senses seek the Labyrinth. Don't be a fool start 
-                    from the top and then go down. If you don't know where 
-                    to start, then seek the Scottish soldier 
-                    hes always on the Lookout.''',
+                    To find your next location, you must seek 
+                    the Scottish soldier 
+                    hes always on the Lookout. 
+                    Once there don't pass the Butter?''',
     "eyebrow-clue":'''Dang I should really read more books. 
                       For your next location, we will explore space
                       and light. It is important to examine what is
                       Within and what we are Without. When you do this 
                       and dare to go into the pyramid, you will find your next clue.''',
-    "avo-clue":'''I feel zen don't you? For your next location,
+    "avo-clue":'''I feel zen, don't you? Your next location,
                   is about finding peace with people around the world 
                   and espeically your sister! Did you know that there's a bird
                   that migrates from Japan every year to Canberra? Incredible. One
-                  more thing, check tables when you get there...''',
+                  more thing, check the tables when you get there...''',
     "peace-clue":'''Are you hungry? I know I am. For your next location, its dinner time!
                     We have reservation at KOTO Japanese Restaurant for 6:15pm! Don't be late!
                     MMM I love sushi.''',    
@@ -151,6 +147,23 @@ def note(path):
 @app.route('/robots.txt')
 def robots():
     return app.send_static_file('robots.txt')
+
+
+@app.route('/uploads/admin')
+def show_uploads():
+    upload_dir = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+    if not os.path.isdir(upload_dir):
+        image_files = []
+    else:
+        image_files = [f for f in os.listdir(upload_dir)
+                       if os.path.isfile(os.path.join(upload_dir, f))
+                       and f.lower().rsplit('.', 1)[-1] in ALLOWED_EXTENSIONS]
+
+    # sort by newest first
+    image_files.sort(key=lambda f: os.path.getmtime(os.path.join(upload_dir, f)), reverse=True)
+
+    image_urls = [f"/static/uploads/{f}" for f in image_files]
+    return render_template('show-uploads.html', images=image_urls)
 
 
 @app.route('/upload-photo', methods=['POST'])

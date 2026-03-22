@@ -1,2 +1,13 @@
 *.pyc
-__pycache__/*
+__pycache__/
+
+# Ignore uploaded files and runtime artifacts
+static/uploads/
+
+# Environment
+venv/
+.env
+
+# IDE configs
+.vscode/
+.idea/

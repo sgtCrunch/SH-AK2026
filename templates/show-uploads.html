@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uploaded Images</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0; padding: 0; background: #030510; color: #f3f3f3;
+      font-family: 'VT323', monospace;
+      display: flex; justify-content:center; align-items:center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .container { width: min(100%, 980px); padding: 20px; }
+    h1 { font-family:'Press Start 2P',monospace; font-size: 18px; margin-bottom: 18px; color: #8ec5ff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .grid-item { border: 2px solid #3060e0; padding: 8px; background: #fdf8dc; box-shadow: 3px 3px 0 1px rgba(0,0,0,.35); }
+    .grid-item img { width: 100%; height: auto; object-fit: contain; display:block; }
+    .caption { margin-top: 6px; font-size: 11px; color: #121314; }
+    a.back { color: #fff; font-size: 10px; text-decoration: none; border: 1px solid #fff; padding: 5px 9px; margin-top: 14px; display:inline-block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Uploaded Images</h1>
+
+    {% if images %}
+      <div class="grid">
+        {% for url in images %}
+          <div class="grid-item">
+            <img src="{{ url }}" alt="Uploaded Image" loading="lazy" />
+            <div class="caption">{{ url.split('/')[-1] }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No uploaded images were found.</p>
+    {% endif %}
+
+    <a class="back" href="/">← Back to Home</a>
+  </div>
+</body>
+</html>
