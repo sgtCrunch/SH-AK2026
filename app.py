@@ -130,9 +130,9 @@ def letter(path):
         abort(404)
     
     clue_img_url = f'/static/clue-imgs/{path}.jpg'
-    
+
     if(path == 'peace-clue'):
-        clean_text = Clues[path]
+        cleaned_text = Clues[path]
     else:
         cleaned_text = clean_text(Clues[path])
 
