@@ -48,7 +48,7 @@ I hope you liked your adventure. It took time and effort, but it's nothing compa
 
 We don't say this often, and to be fair we should. We all care about you immensely, Anushe. We are not talking about a kind of care that dulls over time. It is our deepest hope you realize you will never be truly alone. That when you feel lost or unsure who to lean on, that you, without hesitation, will think of us. Forget all the thoughts that invade your head, telling you it's too much to ask. We will always, enthusiastically, without any second thought, be there for you.
 
-We know your life will be full of adventure, wonder, and love. This was our humble and inspired attempt to give you a little taste of that today.
+We know your life will be full of adventure, wonder, and love. This was our humble and inspired attempt to give you a small taste of that today.
 
 With much love, 
 
