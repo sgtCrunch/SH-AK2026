@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles/blue-letters.css') }}"/>
 </head>
 
-<body data-redirect-url="{{ redirect_url }}" data-background-url="{{ background_url }}">
+<body data-redirect-url="{{ redirect_url }}" data-background-url="{{ background_url }}" data-song-url="{{ song_url }}">
 
 <div id="stars"></div>
 <div id="light-bloom"></div>
@@ -384,6 +384,17 @@ function buildSparkles() {
 }
 buildSparkles();
 window.addEventListener('resize', buildSparkles);
+
+/* ── Background Music ────────────────────────────── */
+const songUrl = document.body.dataset.songUrl;
+if (songUrl) {
+  const audio = new Audio(songUrl);
+  audio.loop = true;
+  audio.volume = 0.5;
+  audio.play().catch(e => {
+    console.log('Audio failed to play:', e);
+  });
+}
 
 /* ════════════════════════════════════════════════════
    STATE

@@ -2,6 +2,8 @@ import os
 from flask import Flask, render_template, request, jsonify, redirect
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
+import smtplib
+from email.mime.text import MIMEText
 
 
 app = Flask(__name__)
@@ -20,6 +22,27 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Email configuration
+SENDER_EMAIL = os.environ['SENDER_EMAIL']
+SENDER_PASSWORD = os.environ['SENDER_PASSWORD']
+RECEIVER_EMAIL = os.environ['RECEIVER_EMAIL']
+SMTP_SERVER = os.environ['SMTP_SERVER']
+SMTP_PORT = int(os.environ['SMTP_PORT'])
+
+def send_email():
+    msg = MIMEText("Someone accessed the peace-clue page.")
+    msg['Subject'] = 'Peace Clue Accessed'
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = RECEIVER_EMAIL
+    try:
+        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
+        server.quit()
+        print("Email sent successfully")
+    except Exception as e:
+        print(f"Email failed: {e}")
 
 # ── Sample data — replace with your own source ────────────
 Clues = {
@@ -132,6 +155,7 @@ def letter(path):
     clue_img_url = f'/static/clue-imgs/{path}.jpg'
 
     if(path == 'peace-clue'):
+        send_email()
         cleaned_text = Clues[path]
     else:
         cleaned_text = clean_text(Clues[path])
@@ -140,7 +164,8 @@ def letter(path):
 
     return render_template('blue-letter.html', 
                            pages=pages,
-                           background_url=f'/static/backgrounds/{path}.png', 
+                           background_url=f'/static/backgrounds/{path}.png',
+                           song_url=f'/static/clue-songs/{path}.mp3', 
                            redirect_url=f'/{path}/completed')
 
 @app.route('/<path:path>/completed')
