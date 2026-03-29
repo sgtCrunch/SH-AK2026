@@ -387,13 +387,11 @@ window.addEventListener('resize', buildSparkles);
 
 /* ── Background Music ────────────────────────────── */
 const songUrl = document.body.dataset.songUrl;
+let audioPlayer = null;
 if (songUrl) {
-  const audio = new Audio(songUrl);
-  audio.loop = true;
-  audio.volume = 0.5;
-  audio.play().catch(e => {
-    console.log('Audio failed to play:', e);
-  });
+  audioPlayer = new Audio(songUrl);
+  audioPlayer.loop = true;
+  audioPlayer.volume = 0.5;
 }
 
 /* ════════════════════════════════════════════════════
@@ -441,6 +439,13 @@ function openEnvelope() {
   state = 'opening';
   bloomDone = false;
   pendingTypeIdx = -1;
+
+  // Play audio on user interaction
+  if (audioPlayer) {
+    audioPlayer.play().catch(e => {
+      console.log('Audio failed to play:', e);
+    });
+  }
 
   // Fade sparkles out smoothly
   spHostEl.classList.add('fading');
