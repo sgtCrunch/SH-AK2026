@@ -1,16 +1,12 @@
 import os
+import smtplib
 from flask import Flask, render_template, request, jsonify, redirect
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-import smtplib
 from email.mime.text import MIMEText
 
 
 app = Flask(__name__)
-
-#app.config['PREFERRED_URL_SCHEME'] = 'https'
-# Fix proxy headers when behind Nginx
-#app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 
 # ── Config ────────────────────────────────────────────────
@@ -142,7 +138,7 @@ def clean_text(text):
 
 # ── Routes ────────────────────────────────────────────────
 # This route handles the root URL, e.g., "/"
-#@app.route('/', defaults={'path': ''})
+# @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def letter(path):
     print(f"Received request for path: {path}")
