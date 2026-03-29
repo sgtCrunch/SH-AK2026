@@ -44,15 +44,15 @@ Clues = {
                     ''',
     "peace-clue":'''Happy Birthday, Anushe! 
 
-I hope you liked your adventure. It took time and effort, but it's nothing compared to what you provide as a friend. As you know, I am always second guessing myself, mostly because my brain has a habit of sabotaging me. But honestly, around you, my brain shuts off, and I feel so content in being myself. But my favorite part our time together comes later in the night, after the 100th time you've made me laugh, when my brain suddenly turns back on to make sure I realize how lucky I am to know you. You are an amazing person, Anushe. You are smart, silly and serious all at the same time, and sometimes when you are garnering all the attention in a room by just being yourself, I get this undeniable sensatiion that brings me so much joy and nostalgia for a time where everything was simple. 
+I hope you liked your adventure. It took time and effort, but it's nothing compared to what you provide as a friend. Anushe, you are a remarkable person. You are smart, silly and serious all at the same time, and sometimes when you are garnering all the attention in a room by just being yourself, we all can't help but feel incredibly lucky.
 
-I don't say this often, and to be honest I wish I could. I care about you immensely, Anushe. I'm not talking about a sort of care that dulls over time. It is my deepest hope you realize you will never be truly alone. That when you feel lost or unsure who to lean on, that you, without hesitation, will feel like you can think of me. Forget all the thoughts that invade your head, telling you it's too much to ask, I will always, enthusiastically, without any second thought, be there for you. But I'm not special, I hope you know that all people that call you a friend feel the same way. 
+We don't say this often, and to be fair we should. We all care about you immensely, Anushe. We are not talking about a kind of care that dulls over time. It is our deepest hope you realize you will never be truly alone. That when you feel lost or unsure who to lean on, that you, without hesitation, will think of us. Forget all the thoughts that invade your head, telling you it's too much to ask. We will always, enthusiastically, without any second thought, be there for you.
 
-I know your life will be full of adventure, wonder, and love. This was my humble and inspired attempt to give you a little taste of that today.
+We know your life will be full of adventure, wonder, and love. This was our humble and inspired attempt to give you a little taste of that today.
 
 With much love, 
 
-Brayan''',
+Your Friends''',
     "paint-clue":'''Pretty cool huh? It challenges our perception of reality
                     and makes us pay attention. For this challenge, you will solve the
                     Anushe themed crossword! Once done take a picture and submit it on the next page.''',
